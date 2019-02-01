@@ -209,7 +209,7 @@ xgo:
 install-os-dependencies:
 	_assets/scripts/install_deps.sh
 
-setup: install-os-dependencies dep-install lint-install mock-install deploy-install gen-install update-fleet-config ##@other Prepare project for first build
+setup: install-os-dependencies dep-install lint-install deploy-install gen-install update-fleet-config ##@other Prepare project for first build
 
 generate: ##@other Regenerate assets and other auto-generated stuff
 	go generate ./static ./static/migrations
@@ -299,7 +299,7 @@ lint:
 	@echo "lint"
 	@golangci-lint run ./...
 
-ci: lint mock dep-ensure canary-test test-unit test-e2e ##@tests Run all linters and tests at once
+ci:
 
 clean: ##@other Cleanup
 	rm -fr build/bin/*

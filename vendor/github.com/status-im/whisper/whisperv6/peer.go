@@ -148,6 +148,7 @@ func (peer *Peer) handshake() error {
 	if err := <-errc; err != nil {
 		return fmt.Errorf("peer [%x] failed to send status packet: %v", peer.ID(), err)
 	}
+	log.Info("established handshake", "peer", peer.peer.ID().String())
 	return nil
 }
 
