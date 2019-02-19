@@ -46,7 +46,7 @@
 
 [[constraint]]
   name = "github.com/status-im/whisper"
-  branch = "env-received-event"
+  branch = "remove-flaky-check"
 
 [[constraint]]
   name = "golang.org/x/text"
