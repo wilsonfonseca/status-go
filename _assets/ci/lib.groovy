@@ -56,6 +56,7 @@ def uploadArtifact(path) {
 def buildBranch(name = null, buildType = null) {
   /* need to drop origin/ to match definitions of child jobs */
   def branchName = env.GIT_BRANCH.replace('origin/', '')
+  println "name: ${name}, build: ${buildType}, branch: ${branchName}"
   /* always pass the BRANCH and BUILD_TYPE params with current branch */
   def resp = build(
     job: name,
