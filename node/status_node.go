@@ -135,6 +135,7 @@ func (n *StatusNode) StartWithOptions(config *params.NodeConfig, options StartOp
 
 	n.db = db
 
+	log.Info("Config", "MaxPeers", config.MaxPeers)
 	err = n.startWithDB(config, db, options.Services)
 
 	// continue only if there was no error when starting node with a db

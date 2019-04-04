@@ -111,6 +111,7 @@ func (b *StatusBackend) StartNode(config *params.NodeConfig) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	log.Info("Config", "MaxPeers", config.MaxPeers)
 	if err := b.startNode(config); err != nil {
 		signal.SendNodeCrashed(err)
 
@@ -141,6 +142,7 @@ func (b *StatusBackend) startNode(config *params.NodeConfig) (err error) {
 	services := []gethnode.ServiceConstructor{}
 	services = appendIf(config.UpstreamConfig.Enabled, services, b.rpcFiltersService())
 
+	log.Info("Config", "MaxPeers", config.MaxPeers)
 	if err = b.statusNode.StartWithOptions(config, node.StartOptions{
 		Services: services,
 		// The peers discovery protocols are started manually after

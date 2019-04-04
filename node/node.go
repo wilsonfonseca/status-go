@@ -49,6 +49,7 @@ var logger = log.New("package", "status-go/node")
 func MakeNode(config *params.NodeConfig, db *leveldb.DB) (*node.Node, error) {
 	// If DataDir is empty, it means we want to create an ephemeral node
 	// keeping data only in memory.
+	logger.Info("Config", "MaxPeers", config.MaxPeers)
 	if config.DataDir != "" {
 		// make sure data directory exists
 		if err := os.MkdirAll(filepath.Clean(config.DataDir), os.ModePerm); err != nil {
@@ -66,6 +67,7 @@ func MakeNode(config *params.NodeConfig, db *leveldb.DB) (*node.Node, error) {
 		return nil, err
 	}
 
+	logger.Info("Config", "MaxPeers", stackConfig.P2P.MaxPeers)
 	stack, err := node.New(stackConfig)
 	if err != nil {
 		return nil, fmt.Errorf(ErrNodeMakeFailureFormat, err.Error())
@@ -107,12 +109,14 @@ func MakeNode(config *params.NodeConfig, db *leveldb.DB) (*node.Node, error) {
 	if err := activatePeerService(stack); err != nil {
 		return nil, fmt.Errorf("%v: %v", ErrPeerServiceRegistrationFailure, err)
 	}
+	logger.Info("Config", "MaxPeers", config.MaxPeers)
 
 	return stack, nil
 }
 
 // newGethNodeConfig returns default stack configuration for mobile client node
 func newGethNodeConfig(config *params.NodeConfig) (*node.Config, error) {
+	logger.Info("Config", "MaxPeers", config.MaxPeers)
 	nc := &node.Config{
 		DataDir:           config.DataDir,
 		KeyStoreDir:       config.KeyStoreDir,
