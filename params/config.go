@@ -379,6 +379,12 @@ func WithMailserver() Option {
 	}
 }
 
+func WithJSON(jsonString string) Option {
+	return func(c *NodeConfig) error {
+		return loadConfigFromJSON(jsonString, c)
+	}
+}
+
 // NewNodeConfigWithDefaults creates new node configuration object
 // with some defaults suitable for adhoc use.
 func NewNodeConfigWithDefaults(dataDir string, networkID uint64, opts ...Option) (*NodeConfig, error) {

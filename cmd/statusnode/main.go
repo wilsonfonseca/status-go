@@ -1,25 +1,44 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+
+	statusNode := NewStatusNode()
+	statusNode.Start()
+
 	r := gin.Default()
 	r.LoadHTMLGlob("./cmd/statusnode/assets/tmpl/*")
 	r.Static("static", "./cmd/statusnode/assets/static")
 
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"Enabled": true,
-			"StaticPeers": []string{
-				"one", "two", "tree",
-			},
-			"EnodeID":  "enode://ffffffffffffffff:pAss@127.0.0.1:99999",
-			"MaxPeers": 30,
-		})
+		if statusNode.State() == StateRestarting {
+			c.HTML(http.StatusOK, "progress.tmpl", statusNode)
+		} else {
+			c.HTML(http.StatusOK, "index.tmpl", gin.H{
+				"Enabled":     statusNode.MailserverRunning(),
+				"StaticPeers": statusNode.StaticPeers(),
+				"EnodeID":     statusNode.MailserverEnode(),
+				"MaxPeers":    30,
+			})
+		}
+	})
+
+	r.POST("/set", func(c *gin.Context) {
+		bytes, _ := ioutil.ReadAll(c.Request.Body)
+		fmt.Printf("BODY IS: %s\n", string(bytes))
+		statusNode.AddOverride(string(bytes))
+		go func() {
+			statusNode.Stop()
+			statusNode.Start()
+		}()
+		c.Redirect(http.StatusTemporaryRedirect, "/")
 	})
 
 	r.GET("/ping", func(c *gin.Context) {
@@ -28,4 +47,6 @@ func main() {
 		})
 	})
 	r.Run() // listen and serve on 0.0.0.0:8080
+
+	statusNode.Stop()
 }
