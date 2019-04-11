@@ -223,24 +223,36 @@
             <div class="row">
                 <div class="col">
                     <h5>Max Peers</h5>
-                    <input id="max-peers" type="text" class="text" value="{{ .MaxPeers }}" name="max-peers"></input>
-                    <button onclick="update_max_peers()">Set</button>
+                    <div class="input-group">
+                        <input id="max-peers" type="text" class="input-group-text" value="{{ .MaxPeers }}" name="max-peers"></input>
+                        <div class="input-group-append">
+                            <button class="btn btn-secondary" onclick="update_max_peers()">Set</button>
+                        </div>
+                    </div>
                     <hr />
                 </div>
             </div>
             <div class="row">
                 <div class="col">
                     <h5>My IP</h5>
-                    <input id="my-ip" type="text" class="text" value="{{ .MyIP }}" name="my-ip"></input>
-                    <button onclick="update_my_ip()">Update</button>
+                    <div class="input-group">
+                        <input id="my-ip" class="input-group-text" class="text" value="{{ .MyIP }}" name="my-ip"></input>
+                        <div class="input-group-append">
+                            <button class="btn btn-secondary" onclick="update_my_ip()">Update</button>
+                        </div>
+                    </div>
                     <hr />
                 </div>
             </div>
             <div class="row">
                 <div class="col">
                     <h5>Mailserver Password</h5>
-                    <input id="mailserver-password" type="text" class="text" value="{{ .MailserverPassword }}" name="mailserver-password"></input>
-                    <button onclick="update_mailserver_password()">Update</button>
+                        <div class="input-group">
+                            <input id="mailserver-password" type="text" class="input-group-text" value="{{ .MailserverPassword }}" name="mailserver-password"></input>
+                            <div class="input-group-append">
+                                <button class="btn btn-secondary" onclick="update_mailserver_password()">Update</button>
+                            </div>
+                        </div>
                     <hr />
                 </div>
             </div>
