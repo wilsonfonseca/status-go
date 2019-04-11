@@ -26,10 +26,16 @@ func NewStatusNode() *StatusNode {
 	return node
 }
 
+type UndoInfo struct {
+	CanUndo bool
+	CanRedo bool
+}
+
 type StatusNode struct {
-	backend          *api.StatusBackend
-	state            State
-	confOverrideJSON []string
+	backend                *api.StatusBackend
+	state                  State
+	confOverrideJSON       []string
+	undoedConfOverrideJSON []string
 }
 
 func (n *StatusNode) Start() error {
@@ -117,8 +123,44 @@ func (n *StatusNode) AddOverride(override string) {
 	n.confOverrideJSON = append(n.confOverrideJSON, override)
 }
 
+func (n *StatusNode) UndoInfo() UndoInfo {
+	return UndoInfo{
+		CanUndo: len(n.confOverrideJSON) > 0,
+		CanRedo: len(n.undoedConfOverrideJSON) > 0,
+	}
+}
+
+func (n *StatusNode) UndoOverrides() {
+	if len(n.confOverrideJSON) < 1 {
+		return
+	}
+
+	lastIndex := len(n.confOverrideJSON) - 1
+
+	n.undoedConfOverrideJSON = append(
+		n.undoedConfOverrideJSON,
+		n.confOverrideJSON[lastIndex])
+
+	n.confOverrideJSON = n.confOverrideJSON[:lastIndex]
+}
+
+func (n *StatusNode) RedoOverrides() {
+	if len(n.undoedConfOverrideJSON) < 1 {
+		return
+	}
+
+	lastIndex := len(n.undoedConfOverrideJSON) - 1
+
+	n.confOverrideJSON = append(
+		n.confOverrideJSON,
+		n.undoedConfOverrideJSON[lastIndex])
+
+	n.undoedConfOverrideJSON = n.undoedConfOverrideJSON[:lastIndex]
+}
+
 func (n *StatusNode) ResetOverrides() {
 	n.confOverrideJSON = []string{}
+	n.undoedConfOverrideJSON = []string{}
 }
 
 func (n *StatusNode) GetConfig() *params.NodeConfig {

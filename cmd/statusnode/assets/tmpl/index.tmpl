@@ -121,8 +121,20 @@
             }
 
             function reset_config() {
+                post_and_reload("/reset");
+            }
+
+            function undo() {
+                post_and_reload("/undo");
+            }
+
+            function redo() {
+                post_and_reload("/redo");
+            }
+
+            function post_and_reload(path) {
                 var xhr = new XMLHttpRequest();
-                xhr.open("POST", "/reset", true);
+                xhr.open("POST", path, true);
                 xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
 
                 xhr.send("");
@@ -137,6 +149,13 @@
             <h1>Mailserver</h1>
             {{ if .Enabled }}
                 <button onclick="set_mailserver(false);">Stop Mailserver</button>
+                {{ if .UndoInfo.CanUndo }}
+                    <button onclick="undo()">Undo</button>
+                {{ end }}
+
+                {{ if .UndoInfo.CanRedo }}
+                    <button onclick="redo()">Redo</button>
+                {{ end }}
                 <button onclick="reset_config()">Reset Config</button>
             {{ else }}
                 <button onclick="set_mailserver(true)">Start Mailserver</button>

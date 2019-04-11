@@ -28,6 +28,7 @@ func main() {
 				"MaxPeers":           statusNode.MaxPeers(),
 				"MyIP":               statusNode.MyIP(),
 				"MailserverPassword": statusNode.MailServerPassword(),
+				"UndoInfo":           statusNode.UndoInfo(),
 			})
 		}
 	})
@@ -36,6 +37,24 @@ func main() {
 		bytes, _ := ioutil.ReadAll(c.Request.Body)
 		fmt.Printf("BODY IS: %s\n", string(bytes))
 		statusNode.AddOverride(string(bytes))
+		go func() {
+			statusNode.Stop()
+			statusNode.Start()
+		}()
+		c.Redirect(http.StatusTemporaryRedirect, "/")
+	})
+
+	r.POST("/undo", func(c *gin.Context) {
+		statusNode.UndoOverrides()
+		go func() {
+			statusNode.Stop()
+			statusNode.Start()
+		}()
+		c.Redirect(http.StatusTemporaryRedirect, "/")
+	})
+
+	r.POST("/redo", func(c *gin.Context) {
+		statusNode.RedoOverrides()
 		go func() {
 			statusNode.Stop()
 			statusNode.Start()
