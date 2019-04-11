@@ -32,29 +32,88 @@
             </div>
         </nav>
         <script type="text/javascript">
-            function set_mailserver(enable) {
-                // construct an HTTP request
+            function apply_config_override(conf) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("POST", "/set", true);
                 xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
 
+                xhr.send(JSON.stringify(conf));
+
+                xhr.onloadend = function () {
+                    location.reload();
+                };
+            }
+
+            function set_mailserver(enable) {
+                // construct an HTTP request
                 var data = {
                     "WhisperConfig": {
                         "EnableMailServer": enable
                     }
                 };
-                // send the collected data as JSON
-                xhr.send(JSON.stringify(data));
+                apply_config_override(data);
+            }
+
+            function update_max_peers() {
+                var maxPeers = document.getElementById('max-peers').value;
+
+                var data = {
+                    "MaxPeers": Number(maxPeers)
+                };
+
+                apply_config_override(data);
+            }
+
+            function update_my_ip() {
+                var myIP = document.getElementById('my-ip').value;
+
+                var data = {
+                    "AdvertiseAddr": myIP
+                };
+
+                apply_config_override(data);
+            }
+    
+            function add_static_peer() {
+                var newStaticPeer = document.getElementById('new-static-peer').value;
+
+                var staticPeersSearchResults = document.getElementById('static-peers').getElementsByTagName('span');
+
+                var staticPeersList = [];
+
+                for (var i = 0; i < staticPeersSearchResults.length; i++) {
+                    staticPeersList.push(staticPeersSearchResults[i].textContent);
+                }
+
+                staticPeersList.push(newStaticPeer);
+
+                var data = {
+                    "ClusterConfig": {
+                        "StaticNodes": staticPeersList
+                    }
+                };
+
+                apply_config_override(data);
+            }
+
+            function reset_config() {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "/reset", true);
+                xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+
+                xhr.send("");
 
                 xhr.onloadend = function () {
-                    alert("done");
+                    location.reload();
                 };
             }
+
         </script>
         <div class="container" id="content-mailserver">
             <h1>Mailserver</h1>
             {{ if .Enabled }}
                 <button onclick="set_mailserver(false);">Stop Mailserver</button>
+                <button onclick="reset_config()">Reset Config</button>
             {{ else }}
                 <button onclick="set_mailserver(true)">Start Mailserver</button>
             {{ end }}
@@ -79,17 +138,22 @@
                     <h3>Settings</h3>
                     <h5>Known Mailservers</h5>
                     <div id="peers">
-                        <ul>
+                        <ul id="static-peers">
                              {{range .StaticPeers }}
-                             <li>{{ . }} <button>Remove</button> </li>
+                             <li><span>{{ . }}</span><button>Remove</button></li>
                              {{end}}
                         </ul>
-                        <button>Add...</button>
+                        <input id="new-static-peer" type="text" class="text" value="" name="new-static-peer"></input>
+                        <button onclick="add_static_peer()">Add...</button>
                     </div>
                     <hr />
                     <h5>Max Peers</h5>
-                    <input type="text" class="text" value="{{ .MaxPeers }}" name="max-peers" />
-                    <button>Set</button>
+                    <input id="max-peers" type="text" class="text" value="{{ .MaxPeers }}" name="max-peers"></input>
+                    <button onclick="update_max_peers()">Set</button>
+                    <h5>My IP</h5>
+                    <input id="my-ip" type="text" class="text" value="{{ .MyIP }}" name="my-ip"></input>
+                    <button onclick="update_my_ip()">Update</button>
+
                 </div>
             </div>
         </div>

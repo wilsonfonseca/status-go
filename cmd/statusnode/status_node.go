@@ -57,6 +57,10 @@ func (n *StatusNode) Stop() error {
 }
 
 func (n *StatusNode) State() State {
+	if n.state == StateStarted && !n.backend.IsNodeRunning() {
+		return StateRestarting
+	}
+
 	return n.state
 }
 
@@ -69,22 +73,48 @@ func (n *StatusNode) StaticPeers() []*enode.Node {
 }
 
 func (n *StatusNode) EnodeID() string {
-	return n.backend.StatusNode().GethNode().Server().NodeInfo().Enode
+	enode := n.backend.StatusNode().GethNode().Server().NodeInfo().Enode
+
+	if n.MyIP() == "" {
+		return enode
+	}
+
+	elements := strings.Split(enode, "@")
+
+	subelements := strings.Split(elements[1], ":")
+
+	return fmt.Sprintf("%s@%s:%s", elements[0], n.MyIP(), subelements[1])
 }
 
 func (n *StatusNode) MailserverEnode() string {
 	// TODO: a hack
 	enodeID := n.EnodeID()
 
+	// splitting on pre-and post '@' to insert a password there
 	elements := strings.Split(enodeID, "@")
 
 	password := n.backend.StatusNode().Config().WhisperConfig.MailServerPassword
 
-	return fmt.Sprintf("%s:%s@%s", elements[0], password, elements[1])
+	// get rid of ?discport=0"
+	subelements := strings.Split(elements[1], "?")
+
+	return fmt.Sprintf("%s:%s@%s", elements[0], password, subelements[0])
+}
+
+func (n *StatusNode) MyIP() string {
+	return n.backend.StatusNode().Config().AdvertiseAddr
+}
+
+func (n *StatusNode) MaxPeers() int {
+	return n.backend.StatusNode().Config().MaxPeers
 }
 
 func (n *StatusNode) AddOverride(override string) {
 	n.confOverrideJSON = append(n.confOverrideJSON, override)
+}
+
+func (n *StatusNode) ResetOverrides() {
+	n.confOverrideJSON = []string{}
 }
 
 func (n *StatusNode) GetConfig() *params.NodeConfig {

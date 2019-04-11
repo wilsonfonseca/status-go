@@ -25,6 +25,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"reflect"
 	"runtime"
 	"sync"
 	"time"
@@ -809,6 +810,11 @@ func (whisper *Whisper) Start(*p2p.Server) error {
 func (whisper *Whisper) Stop() error {
 	close(whisper.quit)
 	log.Info("whisper stopped")
+	if whisper.mailServer != nil {
+		// TODO: pass through the interface instead
+		closeMethod := reflect.ValueOf(whisper.mailServer).MethodByName("Close")
+		closeMethod.Call([]reflect.Value{})
+	}
 	return nil
 }
 

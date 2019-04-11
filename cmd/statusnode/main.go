@@ -25,7 +25,8 @@ func main() {
 				"Enabled":     statusNode.MailserverRunning(),
 				"StaticPeers": statusNode.StaticPeers(),
 				"EnodeID":     statusNode.MailserverEnode(),
-				"MaxPeers":    30,
+				"MaxPeers":    statusNode.MaxPeers(),
+				"MyIP":        statusNode.MyIP(),
 			})
 		}
 	})
@@ -34,6 +35,15 @@ func main() {
 		bytes, _ := ioutil.ReadAll(c.Request.Body)
 		fmt.Printf("BODY IS: %s\n", string(bytes))
 		statusNode.AddOverride(string(bytes))
+		go func() {
+			statusNode.Stop()
+			statusNode.Start()
+		}()
+		c.Redirect(http.StatusTemporaryRedirect, "/")
+	})
+
+	r.POST("/reset", func(c *gin.Context) {
+		statusNode.ResetOverrides()
 		go func() {
 			statusNode.Stop()
 			statusNode.Start()
