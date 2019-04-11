@@ -1,7 +1,7 @@
 <!-- vi:filetype=html -->
 <html>
     <head>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" />
         <script type="text/javascript" src="/static/qrcode.min.js"></script>
         <title>Status Node</title>
     </head>
@@ -146,61 +146,101 @@
 
         </script>
         <div class="container" id="content-mailserver">
-            <h1>Mailserver</h1>
-            {{ if .Enabled }}
-                <button onclick="set_mailserver(false);">Stop Mailserver</button>
-                <button {{ if not .UndoInfo.CanUndo }} disabled="true" {{ end }}
-                        onclick="undo()">Undo</button>
-                <button {{ if not .UndoInfo.CanRedo }} disabled="true" {{ end }}
-                        onclick="redo()">Redo</button>
-                <button onclick="reset_config()">Reset Config</button>
-            {{ else }}
-                <button onclick="set_mailserver(true)">Start Mailserver</button>
-            {{ end }}
             <div class="row">
-                <div class="col-6">
-                    <div class="card" style="width: 20rem;">
-                        <div class="card-body">
-                            <h3>Info</h3>
-
-                            <div id="qrcode"></div>
-                            <script type="text/javascript">
-                                new QRCode(document.getElementById("qrcode"), "{{ .EnodeID }}");
-                            </script>
-                            <p>
-                            <code id="self-address">{{ .EnodeID }}</code>
-                            </p>
-                            <a href="#">How connect Status to this mailserver?</a>
+            <h1>Mailserver</h1>
+            </div>
+            <div class="row">
+                <div class="btn-toolbar justify-content-between">
+                    {{ if .Enabled }}
+                        <div class="btn-group mr-2" role="group" aria-label="">
+                            <button class="btn btn-danger" onclick="set_mailserver(false);">Stop</button>
                         </div>
-                    </div>
+
+                        <div class="btn-group mr-2" role="group" aria-label="">
+                            <div style="margin:auto; padding-left:60px;">Config</div>
+                        </div>
+
+                        <div class="btn-group mr-2" role="group" aria-label="...">
+                            <button {{ if not .UndoInfo.CanUndo }} disabled="true" {{ end }}
+                                    type="button" class="btn btn-secondary" onclick="undo()">Undo</button>
+                            <button {{ if not .UndoInfo.CanRedo }} disabled="true" {{ end }}
+                                    type="button" class="btn btn-secondary" onclick="redo()">Redo</button>
+                        </div>
+                        <div class="btn-group mr-2" role="group" aria-label="">
+                            <button class="btn btn-light" onclick="reset_config()">Reset</button>
+                        </div>
+                    {{ else }}
+                        <button class="btn btn-success" onclick="set_mailserver(true)">Start Mailserver</button>
+                    {{ end }}
                 </div>
-                <div class="col-6">
-                    <h3>Settings</h3>
+            </div>
+            <hr />
+            <div class="row">
+                <div class="col-1">
+                    <h3>Info</h3>
+                </div>
+                <div class="col-4">
+                    <div id="qrcode"></div>
+                    <script type="text/javascript">
+                        new QRCode(document.getElementById("qrcode"), "{{ .EnodeID }}");
+                    </script>
+                </div>
+                <div class="col">
+                    <code id="self-address">{{ .EnodeID }}</code>
+                    <p>
+                        <a href="#">How to connect my Status to this mailserver?</a>
+                    </p>
+                </div>
+            </div>
+            <hr />
+            <div class="row">
+                <h3>Settings</h3>
+            </div>
+            <div class="row">
+                <div class="col">
                     <h5>Known Mailservers</h5>
                     <div id="peers">
-                        <ul id="static-peers">
+                        <ul id="static-peers" class="list-group">
                              {{range .StaticPeers }}
-                             <li><span>{{ . }}</span><button onclick="remove_static_peer('{{.}}')">Remove</button></li>
+                             <li class="list-group-item">
+                                 <span style="word-wrap: break-word;">{{ . }}</span>
+                                 <button class="btn btn-danger" onclick="remove_static_peer('{{.}}')">&#x2716;</button>
+                             </li>
                              {{end}}
                         </ul>
-                        <input id="new-static-peer" type="text" class="text" value="" name="new-static-peer"></input>
-                        <button onclick="add_static_peer()">Add...</button>
+                        <p />
+                        <div class="input-group">
+                            <input class="input-group-text" id="new-static-peer" type="text" class="text" value="" name="new-static-peer"></input>
+                            <div class="input-group-append">
+                                <button class="btn btn-secondary" onclick="add_static_peer()">Add</button>
+                            </div>
+                        </div>
                     </div>
                     <hr />
-
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
                     <h5>Max Peers</h5>
                     <input id="max-peers" type="text" class="text" value="{{ .MaxPeers }}" name="max-peers"></input>
                     <button onclick="update_max_peers()">Set</button>
                     <hr />
-
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
                     <h5>My IP</h5>
                     <input id="my-ip" type="text" class="text" value="{{ .MyIP }}" name="my-ip"></input>
                     <button onclick="update_my_ip()">Update</button>
                     <hr />
-
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
                     <h5>Mailserver Password</h5>
                     <input id="mailserver-password" type="text" class="text" value="{{ .MailserverPassword }}" name="mailserver-password"></input>
                     <button onclick="update_mailserver_password()">Update</button>
+                    <hr />
                 </div>
             </div>
         </div>
