@@ -149,13 +149,10 @@
             <h1>Mailserver</h1>
             {{ if .Enabled }}
                 <button onclick="set_mailserver(false);">Stop Mailserver</button>
-                {{ if .UndoInfo.CanUndo }}
-                    <button onclick="undo()">Undo</button>
-                {{ end }}
-
-                {{ if .UndoInfo.CanRedo }}
-                    <button onclick="redo()">Redo</button>
-                {{ end }}
+                <button {{ if not .UndoInfo.CanUndo }} disabled="true" {{ end }}
+                        onclick="undo()">Undo</button>
+                <button {{ if not .UndoInfo.CanRedo }} disabled="true" {{ end }}
+                        onclick="redo()">Redo</button>
                 <button onclick="reset_config()">Reset Config</button>
             {{ else }}
                 <button onclick="set_mailserver(true)">Start Mailserver</button>
