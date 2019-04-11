@@ -204,6 +204,7 @@
                              {{range .StaticPeers }}
                              <li class="list-group-item">
                                  <span style="word-wrap: break-word;">{{ . }}</span>
+                                 <button class="btn btn-secondary">Sync</button>
                                  <button class="btn btn-danger" onclick="remove_static_peer('{{.}}')">&#x2716;</button>
                              </li>
                              {{end}}
