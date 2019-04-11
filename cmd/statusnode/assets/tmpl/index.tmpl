@@ -45,10 +45,19 @@
             }
 
             function set_mailserver(enable) {
-                // construct an HTTP request
                 var data = {
                     "WhisperConfig": {
                         "EnableMailServer": enable
+                    }
+                };
+                apply_config_override(data);
+            }
+
+            function update_mailserver_password() {
+                var newPassword = document.getElementById('mailserver-password').value;
+                var data = {
+                    "WhisperConfig": {
+                        "MailServerPassword": newPassword
                     }
                 };
                 apply_config_override(data);
@@ -73,10 +82,8 @@
 
                 apply_config_override(data);
             }
-    
-            function add_static_peer() {
-                var newStaticPeer = document.getElementById('new-static-peer').value;
 
+            function get_static_peers() {
                 var staticPeersSearchResults = document.getElementById('static-peers').getElementsByTagName('span');
 
                 var staticPeersList = [];
@@ -85,8 +92,11 @@
                     staticPeersList.push(staticPeersSearchResults[i].textContent);
                 }
 
-                staticPeersList.push(newStaticPeer);
+                return staticPeersList;
+            }
 
+
+            function update_static_peers(staticPeersList) {
                 var data = {
                     "ClusterConfig": {
                         "StaticNodes": staticPeersList
@@ -94,6 +104,20 @@
                 };
 
                 apply_config_override(data);
+            }
+    
+            function add_static_peer() {
+                var staticPeersList = get_static_peers();
+
+                var newStaticPeer = document.getElementById('new-static-peer').value;
+                staticPeersList.push(newStaticPeer);
+                
+                update_static_peers(staticPeersList);
+            }
+
+            function remove_static_peer(peerToRemove) {
+                var staticPeersList = get_static_peers();
+                update_static_peers(staticPeersList.filter(a => a != peerToRemove));
             }
 
             function reset_config() {
@@ -140,20 +164,27 @@
                     <div id="peers">
                         <ul id="static-peers">
                              {{range .StaticPeers }}
-                             <li><span>{{ . }}</span><button>Remove</button></li>
+                             <li><span>{{ . }}</span><button onclick="remove_static_peer('{{.}}')">Remove</button></li>
                              {{end}}
                         </ul>
                         <input id="new-static-peer" type="text" class="text" value="" name="new-static-peer"></input>
                         <button onclick="add_static_peer()">Add...</button>
                     </div>
                     <hr />
+
                     <h5>Max Peers</h5>
                     <input id="max-peers" type="text" class="text" value="{{ .MaxPeers }}" name="max-peers"></input>
                     <button onclick="update_max_peers()">Set</button>
+                    <hr />
+
                     <h5>My IP</h5>
                     <input id="my-ip" type="text" class="text" value="{{ .MyIP }}" name="my-ip"></input>
                     <button onclick="update_my_ip()">Update</button>
+                    <hr />
 
+                    <h5>Mailserver Password</h5>
+                    <input id="mailserver-password" type="text" class="text" value="{{ .MailserverPassword }}" name="mailserver-password"></input>
+                    <button onclick="update_mailserver_password()">Update</button>
                 </div>
             </div>
         </div>

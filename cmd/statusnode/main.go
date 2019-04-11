@@ -22,11 +22,12 @@ func main() {
 			c.HTML(http.StatusOK, "progress.tmpl", statusNode)
 		} else {
 			c.HTML(http.StatusOK, "index.tmpl", gin.H{
-				"Enabled":     statusNode.MailserverRunning(),
-				"StaticPeers": statusNode.StaticPeers(),
-				"EnodeID":     statusNode.MailserverEnode(),
-				"MaxPeers":    statusNode.MaxPeers(),
-				"MyIP":        statusNode.MyIP(),
+				"Enabled":            statusNode.MailserverRunning(),
+				"StaticPeers":        statusNode.StaticPeers(),
+				"EnodeID":            statusNode.MailserverEnode(),
+				"MaxPeers":           statusNode.MaxPeers(),
+				"MyIP":               statusNode.MyIP(),
+				"MailserverPassword": statusNode.MailServerPassword(),
 			})
 		}
 	})

@@ -64,6 +64,10 @@ func (n *StatusNode) State() State {
 	return n.state
 }
 
+func (n *StatusNode) MailServerPassword() string {
+	return n.backend.StatusNode().Config().WhisperConfig.MailServerPassword
+}
+
 func (n *StatusNode) MailserverRunning() bool {
 	return n.backend.StatusNode().Config().WhisperConfig.EnableMailServer
 }
