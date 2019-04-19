@@ -440,7 +440,6 @@ func perform2(mailserver *WMailServer, client *redis.Client) {
 }
 
 func perform(mailserver *WMailServer, client *redis.Client) {
-	var envelopes []redis.Z
 	upper := uint32(1555329600)
 	lower := uint32(1554724800)
 
@@ -460,22 +459,11 @@ func perform(mailserver *WMailServer, client *redis.Client) {
 				"err", decodeErr)
 			continue
 		}
-		timestamp := envelope.Expiry - envelope.TTL
-		member := redis.Z{
-			Score:  float64(timestamp),
-			Member: envelope,
-		}
-		envelopes = append(envelopes, member)
 		if !whisper.BloomFilterMatch(bloom, envelope.Bloom()) {
 			continue
 		}
 
 		count += 1
-	}
-
-	err := client.ZAdd("envelopes", envelopes...).Err()
-	if err != nil {
-		fmt.Printf("ERROR %+v", err)
 	}
 	end := time.Now().Unix()
 	fmt.Println(count)
@@ -498,7 +486,7 @@ func main() {
 
 	client := ExampleNewClient()
 
-	perform2(mailserver, client)
+	perform(mailserver, client)
 	//go perform(mailserver, client)
 	//go perform(mailserver, client)
 	//go perform(mailserver, client)
