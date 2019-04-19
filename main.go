@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/go-redis/redis"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -88,7 +87,7 @@ func (s *WMailServer) Init() error {
 
 	// Open database in the last step in order not to init with error
 	// and leave the database open by accident.
-	database, err := db.Open("/tmp/data/wnode", nil)
+	database, err := db.Open("/docker/statusd-mail/data/wnode", nil)
 	if err != nil {
 		return fmt.Errorf("open DB: %s", err)
 	}
@@ -397,49 +396,7 @@ func peerIDString(peer peerWithID) string {
 func peerIDBytesString(id []byte) string {
 	return fmt.Sprintf("%x", id)
 }
-func perform2(mailserver *WMailServer, client *redis.Client) {
-	//upper := int64(1555329600)
-	//lower := int64(1554724800)
-	count := 0
-	start := time.Now().Unix()
-	bloom := make([]byte, 64)
-	var cursor uint64 = 0
-
-	for true {
-		vals, newCursor, err := client.ZScan("envelopes", cursor, "*", 100000).Result()
-		cursor = newCursor
-		if err != nil {
-			fmt.Printf("ERROR: %+v", err)
-			return
-		}
-
-		for _, rawEnvelope := range vals {
-			var envelope whisper.Envelope
-
-			decodeErr := rlp.DecodeBytes([]byte(rawEnvelope), &envelope)
-			if decodeErr != nil {
-				log.Error("[mailserver:processRequestInBundles] failed to decode RLP",
-					"err", decodeErr)
-				continue
-			}
-			count += 1
-			if cursor == 0 {
-				break
-			}
-
-			if !whisper.BloomFilterMatch(bloom, envelope.Bloom()) {
-				continue
-			}
-
-		}
-	}
-
-	end := time.Now().Unix()
-	fmt.Println(count)
-	fmt.Println(end - start)
-}
-
-func perform(mailserver *WMailServer, client *redis.Client) {
+func perform(mailserver *WMailServer) {
 	upper := uint32(1555329600)
 	lower := uint32(1554724800)
 
@@ -470,23 +427,11 @@ func perform(mailserver *WMailServer, client *redis.Client) {
 	fmt.Println(end - start)
 }
 
-func ExampleNewClient() *redis.Client {
-	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
-
-	return client
-}
-
 func main() {
 	mailserver := &WMailServer{}
 	mailserver.Init()
 
-	client := ExampleNewClient()
-
-	perform(mailserver, client)
+	perform(mailserver)
 	//go perform(mailserver, client)
 	//go perform(mailserver, client)
 	//go perform(mailserver, client)
