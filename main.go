@@ -429,7 +429,11 @@ func perform(mailserver *WMailServer) {
 
 func main() {
 	mailserver := &WMailServer{}
-	mailserver.Init()
+	err := mailserver.Init()
+	if err != nil {
+		fmt.Printf("ERROR opening db: %+v\n", err)
+		return
+	}
 
 	perform(mailserver)
 	//go perform(mailserver, client)
