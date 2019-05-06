@@ -299,14 +299,14 @@ func (s *WMailServer) DeliverMail(peer *whisper.Peer, request *whisper.Envelope)
 	iter := s.createIterator(lower, upper, cursor)
 	defer iter.Release()
 
-	bundles := make(chan []*whisper.Envelope, 5)
+	bundles := make(chan [][]byte, 5)
 	errCh := make(chan error)
 	cancelProcessing := make(chan struct{})
 
 	go func() {
 		counter := 0
 		for bundle := range bundles {
-			if err := s.sendEnvelopes(peer, bundle, batch); err != nil {
+			if err := s.sendEnvelopesRLP(peer, bundle, batch); err != nil {
 				close(cancelProcessing)
 				errCh <- err
 				break
@@ -395,7 +395,7 @@ func (s *WMailServer) SyncMail(peer *whisper.Peer, request whisper.SyncMailReque
 	iter := s.createIterator(request.Lower, request.Upper, request.Cursor)
 	defer iter.Release()
 
-	bundles := make(chan []*whisper.Envelope, 5)
+	bundles := make(chan [][]byte, 5)
 	errCh := make(chan error)
 	cancelProcessing := make(chan struct{})
 
@@ -501,13 +501,13 @@ func (s *WMailServer) processRequestInBundles(
 	limit int,
 	timeout time.Duration,
 	requestID string,
-	output chan<- []*whisper.Envelope,
+	output chan<- [][]byte,
 	cancel <-chan struct{},
 ) ([]byte, common.Hash) {
 	var (
-		bundle                 []*whisper.Envelope
+		bundle                 [][]byte
 		bundleSize             uint32
-		batches                [][]*whisper.Envelope
+		batches                [][][]byte
 		processedEnvelopes     int
 		processedEnvelopesSize int64
 		nextCursor             []byte
@@ -547,7 +547,7 @@ func (s *WMailServer) processRequestInBundles(
 
 		// If we still have some room for messages, add and continue
 		if !limitReached && newSize < s.w.MaxMessageSize() {
-			bundle = append(bundle, &envelope)
+			bundle = append(bundle, iter.Value())
 			bundleSize = newSize
 			continue
 		}
@@ -560,7 +560,7 @@ func (s *WMailServer) processRequestInBundles(
 		}
 
 		// Reset the bundle with the current envelope
-		bundle = []*whisper.Envelope{&envelope}
+		bundle = [][]byte{iter.Value()}
 		bundleSize = envelopeSize
 
 		// Leave if we reached the limit
@@ -621,6 +621,23 @@ func (s *WMailServer) sendEnvelopes(peer *whisper.Peer, envelopes []*whisper.Env
 
 	for _, env := range envelopes {
 		if err := s.w.SendP2PDirect(peer, env); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *WMailServer) sendEnvelopesRLP(peer *whisper.Peer, envelopes [][]byte, batch bool) error {
+	start := time.Now()
+	defer requestProcessNetTimer.UpdateSince(start)
+
+	if batch {
+		return s.w.SendP2PDirectRLP(peer, envelopes...)
+	}
+
+	for _, env := range envelopes {
+		if err := s.w.SendP2PDirectRLP(peer, env); err != nil {
 			return err
 		}
 	}

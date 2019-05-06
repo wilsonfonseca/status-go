@@ -136,7 +136,7 @@ func (r SyncMailRequest) Validate() error {
 // SyncResponse is a struct representing a response sent to the peer
 // asking for syncing archived envelopes.
 type SyncResponse struct {
-	Envelopes []*Envelope
+	Envelopes [][]byte
 	Cursor    []byte
 	Final     bool // if true it means all envelopes were processed
 	Error     string

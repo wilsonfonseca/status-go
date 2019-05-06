@@ -1,0 +1,20 @@
+{
+    "RegisterTopics": ["whispermail"],
+    "ListenAddr": ":30304",
+    "AdvertiseAddr": "178.43.201.250",
+    "NetworkId": 1,
+    "NodeKey": "1c6e0e55659f70fb8dd512ee12931eece245e268d0148d27ab42998e088dcc72",
+    "IncentivisationConfig": {
+      "Enabled": true,
+      "IP": "178.43.201.250",
+      "Port": 30304,
+      "RPCEndpoint": "https://goerli.infura.io/v3/f315575765b14720b32382a61a89341a",
+      "ContractAddress": "0x5D7ed8654F09C7De4BaC4B7E3acbC5799D34b488"
+    },
+    "WhisperConfig": {
+        "Enabled": true,
+        "EnableNTPSync": true,
+        "EnableMailServer": true,
+        "MailServerPassword":"status-offline-inbox"
+    }
+}

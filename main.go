@@ -17,10 +17,15 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"sync"
+
+	_ "github.com/lib/pq"
 
 	"time"
 
@@ -87,7 +92,7 @@ func (s *WMailServer) Init() error {
 
 	// Open database in the last step in order not to init with error
 	// and leave the database open by accident.
-	database, err := db.Open("/docker/statusd-mail/data/wnode", nil)
+	database, err := db.Open("../wnode", nil)
 	if err != nil {
 		return fmt.Errorf("open DB: %s", err)
 	}
@@ -401,10 +406,9 @@ func perform(mailserver *WMailServer) {
 	lower := uint32(1554724800)
 
 	iter := mailserver.createIterator(lower, upper, nil)
-	fmt.Println("Got iterator")
 	defer iter.Release()
 	count := 0
-	start := time.Now().Unix()
+	start := time.Now().UnixNano()
 
 	bloom := make([]byte, 64)
 
@@ -422,9 +426,669 @@ func perform(mailserver *WMailServer) {
 
 		count += 1
 	}
-	end := time.Now().Unix()
+	end := time.Now().UnixNano()
 	fmt.Println(count)
-	fmt.Println(end - start)
+	fmt.Println("TIME", (end-start)/1e6)
+}
+
+func perform4(mailserver *WMailServer, query []byte, _ *sql.DB) {
+	upper := uint32(1555329600)
+	lower := uint32(1554724800)
+	//upper := uint32(1655329600)
+	//lower := uint32(0)
+
+	allCount := 0
+
+	iter := mailserver.createIterator(lower, upper, nil)
+	defer iter.Release()
+	count := 0
+	start := time.Now().UnixNano()
+
+	for iter.Prev() {
+		var envelope whisper.Envelope
+		decodeErr := rlp.DecodeBytes(iter.Value(), &envelope)
+		if decodeErr != nil {
+			log.Error("[mailserver:processRequestInBundles] failed to decode RLP",
+				"err", decodeErr)
+			continue
+		}
+		allCount += 1
+		if !whisper.BloomFilterMatch(query, envelope.Bloom()) {
+			continue
+		}
+
+		count += 1
+	}
+	end := time.Now().UnixNano()
+	fmt.Println(count, allCount)
+	fmt.Println("TIME", (end-start)/1e6)
+}
+
+func perform8(mailserver *WMailServer, query []byte, _ *sql.DB) {
+	//upper := uint32(1555329600)
+	//lower := uint32(1554724800)
+	upper := uint32(1655329600)
+	lower := uint32(0)
+
+	allCount := 0
+
+	iter := mailserver.createIterator(lower, upper, nil)
+	defer iter.Release()
+	count := 0
+	start := time.Now().UnixNano()
+
+	for iter.Prev() {
+		allCount += 1
+		count += 1
+	}
+	end := time.Now().UnixNano()
+	fmt.Println(count, allCount)
+	fmt.Println("TIME", (end-start)/1e6)
+}
+
+func perform5(mailserver *WMailServer, query []byte, db *sql.DB) {
+	upper := uint32(1555329600)
+	lower := uint32(1554724800)
+	allCount := 0
+
+	count := 0
+	start := time.Now().UnixNano()
+	stmt, err := db.Prepare("SELECT data FROM envelopes where timestamp between $1 AND $2")
+	if err != nil {
+		fmt.Println("ERROR PREPARING", err)
+	}
+
+	rows, err := stmt.Query(lower, upper)
+	if err != nil {
+		fmt.Println("ERROR RUNNING", err)
+	}
+
+	for rows.Next() {
+		allCount += 1
+		var envelope whisper.Envelope
+		var rawEnvelope []byte
+		err = rows.Scan(&rawEnvelope)
+		decodeErr := rlp.DecodeBytes(rawEnvelope, &envelope)
+		if decodeErr != nil {
+			log.Error("[mailserver:processRequestInBundles] failed to decode RLP",
+				"err", decodeErr)
+			continue
+		}
+		if !whisper.BloomFilterMatch(query, envelope.Bloom()) {
+			continue
+		}
+
+		count += 1
+	}
+	end := time.Now().UnixNano()
+	fmt.Println(count, allCount)
+	fmt.Println("TIME", (end-start)/1e6)
+}
+
+func perform10(mailserver *WMailServer, query []byte, db *sql.DB) {
+	upper := uint32(1655329600)
+	lower := uint32(0)
+	allCount := 0
+
+	count := 0
+	start := time.Now().UnixNano()
+	stmtString := fmt.Sprintf("SELECT data FROM envelopes2 where timestamp between $1 AND $2 AND bloom & b'%s'::bit(512) = bloom", toBitString(query))
+
+	stmt, err := db.Prepare(stmtString)
+	if err != nil {
+		fmt.Println("ERROR PREPARING", err)
+	}
+
+	rows, err := stmt.Query(lower, upper)
+	if err != nil {
+		fmt.Println("ERROR RUNNING", err)
+	}
+
+	for rows.Next() {
+		allCount += 1
+		var rawEnvelope []byte
+		err = rows.Scan(&rawEnvelope)
+		count += 1
+	}
+	end := time.Now().UnixNano()
+	fmt.Println(count, allCount)
+	fmt.Println("TIME", (end-start)/1e6)
+}
+
+type QueryTopic struct {
+	topic whisper.TopicType
+	bytes []byte
+	bloom []byte
+}
+
+func perform7(mailserver *WMailServer, query []byte, db *sql.DB) {
+	//upper := uint32(1555329600)
+	//lower := uint32(1554724800)
+	upper := uint32(1655329600)
+	lower := uint32(0)
+
+	allCount := 0
+
+	var topics []*QueryTopic
+
+	stmt1, err := db.Prepare("SELECT distinct(topic) FROM envelopes")
+	if err != nil {
+		fmt.Println("ERROR PREPARING", err)
+	}
+
+	rows, err := stmt1.Query()
+	if err != nil {
+		fmt.Println("ERROR RUNNING", err)
+	}
+
+	for rows.Next() {
+		topic := &QueryTopic{}
+
+		err = rows.Scan(&topic.bytes)
+		if err != nil {
+			fmt.Println("ERROR SCANNING", err)
+		}
+		topic.topic = whisper.BytesToTopic(topic.bytes)
+		topic.bloom = topicsToBloom(topic.topic)
+		topics = append(topics, topic)
+
+	}
+	for i := range makeRange(0, 1) {
+		bs := make([]byte, 4)
+		binary.LittleEndian.PutUint32(bs, uint32(i))
+		topic := &QueryTopic{}
+		topic.bytes = bs
+		topic.topic = whisper.BytesToTopic(bs)
+		topic.bloom = topicsToBloom(topic.topic)
+		topics = append(topics, topic)
+
+	}
+	start := time.Now().UnixNano()
+
+	var queryTopics []*QueryTopic
+	for _, t := range topics {
+		if whisper.BloomFilterMatch(query, t.bloom) {
+			queryTopics = append(queryTopics, t)
+		}
+	}
+
+	fmt.Println("Got iterator", len(queryTopics))
+	count := 0
+
+	//args := make([]interface{}, len(queryTopics)+2)
+	args := make([]interface{}, 2)
+	args[0] = lower
+	args[1] = upper
+
+	var rawEnvelopes []whisper.Envelope
+
+	batch := 5000
+	for i := 0; i < len(queryTopics); i += batch {
+		j := i + batch
+		if j > len(queryTopics) {
+			j = len(queryTopics)
+		}
+
+		statementString := "SELECT data FROM envelopes where timestamp between $1 AND $2 AND TOPIC IN ("
+		statementString += fmt.Sprintf("E'\\\\x%x'", queryTopics[0].bytes)
+
+		for _, t := range queryTopics[i+1 : j] {
+			statementString += fmt.Sprintf(",E'\\\\x%x'", t.bytes)
+			//		args[i+2] = t.bytes
+		}
+
+		statementString += ") ORDER BY TIMESTAMP"
+
+		stmt2, err := db.Prepare(statementString)
+		if err != nil {
+			fmt.Println("ERROR PREPARING", err)
+		}
+
+		if err != nil {
+			fmt.Println("ERROR PREPARING", err)
+		}
+
+		rows, err = stmt2.Query(args...)
+		if err != nil {
+			fmt.Println("ERROR RUNNING", err)
+		}
+
+		for rows.Next() {
+			allCount += 1
+			var rawEnvelope []byte
+			err = rows.Scan(&rawEnvelope)
+			count += 1
+		}
+	}
+
+	end := time.Now().UnixNano()
+	fmt.Println(count, allCount)
+	fmt.Println("TIME", (end-start)/1e6)
+
+	fmt.Println(time.Now().Unix())
+	for _, envelope := range rawEnvelopes {
+		if whisper.BloomFilterMatch(query, envelope.Bloom()) {
+			continue
+
+		}
+
+	}
+	fmt.Println(time.Now().Unix())
+
+}
+func perform9(mailserver *WMailServer, query []byte, db *sql.DB) {
+	upper := uint32(1655329600)
+	lower := uint32(0)
+	allCount := 0
+
+	var topics []*QueryTopic
+
+	stmt1, err := db.Prepare("SELECT distinct(topic) FROM envelopes")
+	if err != nil {
+		fmt.Println("ERROR PREPARING", err)
+	}
+
+	rows, err := stmt1.Query()
+	if err != nil {
+		fmt.Println("ERROR RUNNING", err)
+	}
+
+	for rows.Next() {
+		topic := &QueryTopic{}
+
+		err = rows.Scan(&topic.bytes)
+		if err != nil {
+			fmt.Println("ERROR SCANNING", err)
+		}
+		topic.topic = whisper.BytesToTopic(topic.bytes)
+		topic.bloom = topicsToBloom(topic.topic)
+		topics = append(topics, topic)
+
+	}
+	for i := range makeRange(0, 1) {
+		bs := make([]byte, 4)
+		binary.LittleEndian.PutUint32(bs, uint32(i))
+		topic := &QueryTopic{}
+		topic.bytes = bs
+		topic.topic = whisper.BytesToTopic(bs)
+		topic.bloom = topicsToBloom(topic.topic)
+		topics = append(topics, topic)
+
+	}
+	start := time.Now().UnixNano()
+
+	fmt.Println(time.Now().UnixNano())
+	var queryTopics []*QueryTopic
+	for _, t := range topics {
+		if whisper.BloomFilterMatch(query, t.bloom) {
+			queryTopics = append(queryTopics, t)
+		}
+	}
+	fmt.Println(time.Now().UnixNano())
+
+	fmt.Println("Got iterator", len(queryTopics))
+	count := 0
+
+	//args := make([]interface{}, len(queryTopics)+2)
+	args := make([]interface{}, 2)
+	args[0] = lower
+	args[1] = upper
+
+	batch := 5000
+	for i := 0; i < len(queryTopics); i += batch {
+		j := i + batch
+		if j > len(queryTopics) {
+			j = len(queryTopics)
+		}
+
+		statementString := "SELECT data FROM envelopes where timestamp between $1 AND $2 AND TOPIC IN ("
+		statementString += fmt.Sprintf("E'\\\\x%x'", queryTopics[0].bytes)
+
+		for _, t := range queryTopics[i+1 : j] {
+			statementString += fmt.Sprintf(",E'\\\\x%x'", t.bytes)
+			//		args[i+2] = t.bytes
+		}
+
+		statementString += ") ORDER BY TIMESTAMP"
+
+		stmt2, err := db.Prepare(statementString)
+		if err != nil {
+			fmt.Println("ERROR PREPARING", err)
+		}
+
+		if err != nil {
+			fmt.Println("ERROR PREPARING", err)
+		}
+
+		rows, err = stmt2.Query(args...)
+		if err != nil {
+			fmt.Println("ERROR RUNNING", err)
+		}
+
+		for rows.Next() {
+			allCount += 1
+			var rawEnvelope []byte
+			err = rows.Scan(&rawEnvelope)
+			count += 1
+		}
+	}
+
+	end := time.Now().UnixNano()
+	fmt.Println(count, allCount)
+	fmt.Println("TIME", (end-start)/1e6)
+}
+
+func perform6(mailserver *WMailServer, query []byte, db *sql.DB) {
+	upper := uint32(1655329600)
+	lower := uint32(0)
+	allCount := 0
+
+	var topics []*QueryTopic
+
+	stmt1, err := db.Prepare("SELECT distinct(topic) FROM envelopes")
+	if err != nil {
+		fmt.Println("ERROR PREPARING", err)
+	}
+
+	rows, err := stmt1.Query()
+	if err != nil {
+		fmt.Println("ERROR RUNNING", err)
+	}
+
+	for rows.Next() {
+		topic := &QueryTopic{}
+
+		err = rows.Scan(&topic.bytes)
+		if err != nil {
+			fmt.Println("ERROR SCANNING", err)
+		}
+		topic.topic = whisper.BytesToTopic(topic.bytes)
+		topic.bloom = topicsToBloom(topic.topic)
+		topics = append(topics, topic)
+
+	}
+	for i := range makeRange(0, 1) {
+		bs := make([]byte, 4)
+		binary.LittleEndian.PutUint32(bs, uint32(i))
+		topic := &QueryTopic{}
+		topic.bytes = bs
+		topic.topic = whisper.BytesToTopic(bs)
+		topic.bloom = topicsToBloom(topic.topic)
+		topics = append(topics, topic)
+
+	}
+	start := time.Now().UnixNano()
+
+	fmt.Println(time.Now().UnixNano())
+	var queryTopics []*QueryTopic
+	for _, t := range topics {
+		if whisper.BloomFilterMatch(query, t.bloom) {
+			queryTopics = append(queryTopics, t)
+		}
+	}
+	fmt.Println(time.Now().UnixNano())
+
+	fmt.Println("Got iterator", len(queryTopics))
+	count := 0
+
+	//args := make([]interface{}, len(queryTopics)+2)
+	args := make([]interface{}, 2)
+	args[0] = lower
+	args[1] = upper
+
+	batch := 5000
+	for i := 0; i < len(queryTopics); i += batch {
+		j := i + batch
+		if j > len(queryTopics) {
+			j = len(queryTopics)
+		}
+
+		statementString := "SELECT data FROM envelopes where timestamp between $1 AND $2 AND TOPIC IN ("
+		statementString += fmt.Sprintf("E'\\\\x%x'", queryTopics[0].bytes)
+
+		for _, t := range queryTopics[i+1 : j] {
+			statementString += fmt.Sprintf(",E'\\\\x%x'", t.bytes)
+			//		args[i+2] = t.bytes
+		}
+
+		statementString += ") ORDER BY TIMESTAMP"
+
+		stmt2, err := db.Prepare(statementString)
+		if err != nil {
+			fmt.Println("ERROR PREPARING", err)
+		}
+
+		if err != nil {
+			fmt.Println("ERROR PREPARING", err)
+		}
+
+		rows, err = stmt2.Query(args...)
+		if err != nil {
+			fmt.Println("ERROR RUNNING", err)
+		}
+
+		for rows.Next() {
+			allCount += 1
+			var envelope whisper.Envelope
+			var rawEnvelope []byte
+			err = rows.Scan(&rawEnvelope)
+			decodeErr := rlp.DecodeBytes(rawEnvelope, &envelope)
+			if decodeErr != nil {
+				log.Error("[mailserver:processRequestInBundles] failed to decode RLP",
+					"err", decodeErr)
+				continue
+			}
+			count += 1
+		}
+	}
+
+	end := time.Now().UnixNano()
+	fmt.Println(count, allCount)
+	fmt.Println("TIME", (end-start)/1e6)
+}
+
+type Partition struct {
+	bloom  []byte
+	topics []whisper.TopicType
+}
+
+func topicToByte(t whisper.TopicType) []byte {
+	return []byte{t[0], t[1], t[2], t[3]}
+}
+
+func toBitString(bloom []byte) string {
+	val := ""
+	for _, n := range bloom {
+		val += fmt.Sprintf("%08b", n)
+	}
+	return val
+}
+
+func perform3(mailserver *WMailServer, query []byte, db *sql.DB) {
+	upper := uint32(1655329600)
+	lower := uint32(0)
+	//var seconds uint32 = 86400
+	var seconds uint32 = 3600
+
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS envelopes (timestamp INT NOT NULL, data BYTEA NOT NULL, topic BYTEA NOT NULL, id BYTEA NOT NULL UNIQUE)")
+	if err != nil {
+		fmt.Println("ERROR CREATING", err)
+		return
+	}
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS envelopes2 (timestamp INT NOT NULL, data BYTEA NOT NULL, topic BYTEA NOT NULL, id BYTEA NOT NULL UNIQUE, bloom BIT(512) NOT NULL)")
+	if err != nil {
+		fmt.Println("ERROR CREATING", err)
+		return
+	}
+
+	iter := mailserver.createIterator(lower, upper, nil)
+	fmt.Println("Got iterator")
+	defer iter.Release()
+	count := 0
+	start := time.Now().UnixNano()
+
+	bloom := make([]byte, 64)
+	topicMap := make(map[int]*Partition)
+	allTopics := make(map[string]whisper.TopicType)
+
+	for iter.Prev() {
+		var envelope whisper.Envelope
+		rawEnvelope := iter.Value()
+		decodeErr := rlp.DecodeBytes(rawEnvelope, &envelope)
+
+		if decodeErr != nil {
+			log.Error("[mailserver:processRequestInBundles] failed to decode RLP",
+				"err", decodeErr)
+			continue
+		}
+		stmtString := `INSERT INTO envelopes2 VALUES ($1, $2, $3, $4, B'`
+		stmtString += toBitString(envelope.Bloom())
+		stmtString += `'::bit(512)) ON CONFLICT (id) DO NOTHING;`
+		stmt, err := db.Prepare(stmtString)
+		if err != nil {
+			fmt.Println("ERROR PREPARING", err)
+			return
+		}
+		_, err = stmt.Exec(
+			envelope.Expiry-envelope.TTL,
+			rawEnvelope,
+			topicToByte(envelope.Topic),
+			envelope.Hash(),
+		)
+
+		if err != nil {
+			fmt.Println("ERROR INSERTING", err)
+			return
+		}
+
+		stmt.Close()
+
+		partition := int(envelope.Expiry / seconds)
+		if _, ok := topicMap[partition]; !ok {
+			topicMap[partition] = &Partition{}
+		}
+
+		allTopics[envelope.Topic.String()] = envelope.Topic
+		topicMap[partition].topics = append(topicMap[partition].topics, envelope.Topic)
+		if !whisper.BloomFilterMatch(bloom, envelope.Bloom()) {
+			continue
+		}
+
+		count += 1
+	}
+	fmt.Println("TOPICS")
+	fmt.Println(len(topicMap))
+	matches := 0
+	for _, val := range topicMap {
+
+		val.bloom = topicsToBloom(val.topics...)
+		if whisper.BloomFilterMatch(query, val.bloom) {
+			matches += 1
+		}
+
+	}
+	fmt.Println("MATCHES")
+	fmt.Println(matches)
+	var allTopics2 []whisper.TopicType
+	//for i := range makeRange(0, 10967296) {
+	//	bs := make([]byte, 4)
+	//	binary.LittleEndian.PutUint32(bs, uint32(i))
+	//	allTopics2 = append(allTopics2, whisper.BytesToTopic(bs))
+	//
+	//	}
+
+	fmt.Println("STARTING")
+	start2 := time.Now().UnixNano()
+
+	var queryTopics []whisper.TopicType
+	for _, val := range allTopics2 {
+
+		bloom := topicsToBloom(val)
+		if whisper.BloomFilterMatch(query, bloom) {
+			queryTopics = append(queryTopics, val)
+		}
+
+	}
+
+	end2 := time.Now().UnixNano()
+
+	fmt.Println(end2 - start2)
+
+	fmt.Println("QUERY TOPICS")
+	fmt.Println(len(queryTopics))
+
+	end := time.Now().UnixNano()
+	fmt.Println(count)
+	fmt.Println("TIME", (end-start)/1e6)
+}
+
+func combinations(iterable []int, r int) [][]int {
+	pool := iterable
+	n := len(pool)
+	var response [][]int
+
+	if r > n {
+		return nil
+	}
+
+	indices := make([]int, r)
+	for i := range indices {
+		indices[i] = i
+	}
+
+	result := make([]int, r)
+	for i, el := range indices {
+		result[i] = pool[el]
+	}
+
+	for {
+		i := r - 1
+		for ; i >= 0 && indices[i] == i+n-r; i -= 1 {
+		}
+
+		if i < 0 {
+			return response
+		}
+
+		indices[i] += 1
+		for j := i + 1; j < r; j += 1 {
+			indices[j] = indices[j-1] + 1
+		}
+
+		for ; i < len(indices); i += 1 {
+			result[i] = pool[indices[i]]
+		}
+
+		tmp := make([]int, len(result))
+		copy(tmp, result)
+		response = append(response, tmp)
+
+	}
+	return response
+
+}
+
+func makeRange(min, max int) []int {
+	a := make([]int, max-min+1)
+	for i := range a {
+		a[i] = min + i
+	}
+	return a
+}
+
+func topicsToBloom(topics ...whisper.TopicType) []byte {
+	i := new(big.Int)
+	for _, topic := range topics {
+		bloom := whisper.TopicToBloom(topic)
+		i.Or(i, new(big.Int).SetBytes(bloom[:]))
+	}
+
+	combined := make([]byte, whisper.BloomFilterSize)
+	data := i.Bytes()
+	copy(combined[whisper.BloomFilterSize-len(data):], data[:])
+
+	return combined
 }
 
 func main() {
@@ -435,14 +1099,71 @@ func main() {
 		return
 	}
 
-	perform(mailserver)
-	//go perform(mailserver, client)
-	//go perform(mailserver, client)
+	topicStrings := []string{"cd423760", "e1e1f75b", "9295f3ff"}
+
+	topicStrings = topicStrings[:len(topicStrings)]
+	var topics []whisper.TopicType
+	for _, topicString := range topicStrings {
+		topicByte, err := hex.DecodeString(topicString)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		topics = append(topics, whisper.BytesToTopic(topicByte))
+	}
+	bloom := topicsToBloom(topics...)
+	response := combinations(makeRange(0, 63), 3)
+	//fmt.Println(response)
+	count := 0
+	for _, combination := range response {
+		if bloom[combination[0]] != 0 && bloom[combination[1]] != 0 && bloom[combination[2]] != 0 {
+			count = count + 1
+		}
+	}
+	connStr := "postgres://postgres:example@localhost/postgres?sslmode=disable"
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		fmt.Println("ERROR CONNECTING", err)
+		return
+	}
+	fmt.Println(whisper.BytesToTopic(crypto.Keccak256([]byte("status"))))
+	fmt.Println(len(topicStrings))
+	//perform6(mailserver, bloom, db)
+	//perform7(mailserver, bloom, db)
+	//perform10(mailserver, bloom, db)
+	//perform4(mailserver, bloom, db)
+	//perform5(mailserver, bloom, db)
+	//perform6(mailserver, bloom, db)
+	//perform7(mailserver, bloom, db)
+	//perform3(mailserver, bloom, db)
+	//go perform5(mailserver, bloom, db)
+	//go perform5(mailserver, bloom, db)
+	//go perform5(mailserver, bloom, db)
+	//go perform5(mailserver, bloom, db)
+	//go perform5(mailserver, bloom, db)
+
+	//	go perform4(mailserver, bloom)
+	//	go perform4(mailserver, bloom)
+	//	go perform4(mailserver, bloom)
+	//	go perform4(mailserver, bloom)
+
 	//go perform(mailserver, client)
 	//go perform(mailserver, client)
 	//go perform(mailserver, client)
 	//go perform(mailserver, client)
 	//go perform(mailserver, client)
 
-	//time.Sleep(time.Second * 30)
+	//go perform(mailserver, client)
+
+	f := perform10
+	go f(mailserver, bloom, db)
+	go f(mailserver, bloom, db)
+	go f(mailserver, bloom, db)
+	go f(mailserver, bloom, db)
+	//go perform6(mailserver, bloom, db)
+	//go perform6(mailserver, bloom, db)
+	//go perform6(mailserver, bloom, db)
+	//go perform6(mailserver, bloom, db)
+	//go perform6(mailserver, bloom, db)
+	time.Sleep(time.Second * 60)
 }
