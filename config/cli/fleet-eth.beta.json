@@ -1,4 +1,8 @@
 {
+  "HTTPPort": 9999,
+  "HTTPHost": "localhost",
+  "HTTPEnabled": true,
+  "APIModules": "eth,status",
   "Rendezvous": true,
   "NoDiscovery": false,
   "ClusterConfig": {

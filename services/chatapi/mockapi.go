@@ -57,11 +57,12 @@ type ChatView struct {
 }
 
 type API struct {
+	MessagesAPIMixIn
 	cs map[string]ChatView
 }
 
 func NewMockAPI(node *node.StatusNode) *API {
-	return &API{
+	api := &API{
 		cs: map[string]ChatView{
 			"status": {
 				ID:                     "status",
@@ -109,6 +110,8 @@ func NewMockAPI(node *node.StatusNode) *API {
 			},
 		},
 	}
+	api.initMockMessages()
+	return api
 }
 
 func (api *API) Chats() (ChatsResponse, error) {
