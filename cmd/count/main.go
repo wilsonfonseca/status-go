@@ -22,7 +22,7 @@ import (
 
 var (
 	mailserver = flag.String("mailserver", "", "MailServer address (by default a random one from the fleet is selected)")
-	duration   = flag.Duration("duration", time.Hour*24, "length of time span from now")
+	duration   = flag.Duration("duration", time.Hour*(24*7), "length of time span from now")
 	channel    = flag.String("channel", "status", "name of the channel")
 )
 
@@ -130,7 +130,6 @@ func main() {
 		MailServerPeer: mailserverEnode,
 		SymKeyID:       mailServerSymKeyID,
 		From:           uint32(time.Now().Add(-*duration).Unix()),
-		To:             uint32(time.Now().Unix()),
 		Topic:          whisperv6.TopicType(topic),
 		Timeout:        120,
 	})
