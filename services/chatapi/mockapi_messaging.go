@@ -2,7 +2,10 @@ package chatapi
 
 import (
 	"fmt"
+	"sync"
 	"time"
+
+	"github.com/status-im/status-go/signal"
 )
 
 // "id:<message-id>"
@@ -112,6 +115,7 @@ type Datemark struct {
 
 type MessagesAPIMixIn struct {
 	chatMessages map[string][]ChatElement
+	mu           sync.RWMutex
 }
 
 func (api *MessagesAPIMixIn) initMockMessages() {
@@ -122,6 +126,8 @@ func (api *MessagesAPIMixIn) initMockMessages() {
 	api.initMockMessageForChat("status")
 
 	fmt.Println("chatapi -> mock messages created")
+
+	go api.insertNewMessages()
 }
 
 func (api *MessagesAPIMixIn) initMockMessageForChat(chatName string) {
@@ -173,16 +179,70 @@ func (api *MessagesAPIMixIn) initMockMessageForChat(chatName string) {
 	api.chatMessages[chatName] = mockMessages
 }
 
-func (api *MessagesAPIMixIn) GetMessagesBefore(chatID string, id string, limit int) ([]ChatElement, error) {
+func (api *MessagesAPIMixIn) GetMessagesBeforeClock(chatID string, clock string, limit int) ([]ChatElement, error) {
+	api.mu.RLock()
+	defer api.mu.RUnlock()
 	msgs, _ := api.chatMessages[chatID]
 	return msgs[:limit], nil
 }
 
-func (api *MessagesAPIMixIn) GetMessagesAfter(chatID string, id string, limit int) ([]ChatElement, error) {
+func (api *MessagesAPIMixIn) GetMessagesAfter(chatID string, clock string, limit int) ([]ChatElement, error) {
+	api.mu.RLock()
+	defer api.mu.RUnlock()
 	msgs, _ := api.chatMessages[chatID]
 	return msgs[:limit], nil
 }
-func (api *MessagesAPIMixIn) GetMessagesBetween(chatID string, id1, id2 string) ([]ChatElement, error) {
+func (api *MessagesAPIMixIn) GetMessagesBetween(chatID string, clock1, clock2 string) ([]ChatElement, error) {
+	api.mu.RLock()
+	defer api.mu.RUnlock()
 	msgs, _ := api.chatMessages[chatID]
 	return msgs, nil
+}
+
+func (api *MessagesAPIMixIn) insertNewMessages() {
+	for {
+		time.Sleep(1 * time.Second)
+
+		createdMessages := make(map[string][]*Message)
+
+		for i, chatName := range []string{"status", "test1", "test3"} {
+			content := make(map[string]interface{})
+			content["chat-id"] = chatName
+			content["text"] = fmt.Sprintf("test-message-mock-signal-%s-%v", chatName, time.Now().Unix())
+
+			msg := &Message{
+				ID:               fmt.Sprintf("message-id-%s-%v", chatName, time.Now().Unix()),
+				LegacyID:         fmt.Sprintf("message-id-legacy-%s-%v", chatName, time.Now().Unix()),
+				FromHex:          "0x04c7fcb5a2e5a01dc839b582186717c31a6b01d3c0f7790c938f268a0153dc1fcb69e04c2a8bd263f80c03fd27d74924819432e2552baa03afef2f3f67378c8cc1",
+				ChatID:           chatName,
+				ContentType:      "text/plain",
+				MessageType:      "public-group-user-message",
+				Content:          content,
+				Outgoing:         false,
+				LastOutgoing:     false,
+				DisplayPhoto:     true,
+				DisplayUsername:  true,
+				FirstInGroup:     true,
+				LastInGroup:      true,
+				PayloadTimestamp: time.Now().UnixNano(),
+				WhisperTimestamp: time.Now().UnixNano(),
+				TimestampString:  "1 millenia ago",
+				ClockValue:       time.Now().UnixNano() + int64(i),
+			}
+
+			api.mu.Lock()
+			api.chatMessages[chatName] =
+				append(api.chatMessages[chatName], msg)
+			api.mu.Unlock()
+
+			chatMessages, ok := createdMessages[chatName]
+			if !ok {
+				createdMessages[chatName] = []*Message{msg}
+			} else {
+				createdMessages[chatName] = append(chatMessages, msg)
+			}
+		}
+
+		signal.SendNewMessagesSignal(createdMessages)
+	}
 }
