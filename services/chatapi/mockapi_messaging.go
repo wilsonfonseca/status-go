@@ -162,7 +162,7 @@ func (api *MessagesAPIMixIn) initMockMessageForChat(chatName string) {
 				Value: datemarkValue,
 				Type:  "datemark",
 			}
-			mockMessages = append(mockMessages, &Datemark{time.Now(), datemarkValue})
+			mockMessages = append(mockMessages, datemark)
 		}
 
 		if i%30 == 0 {
