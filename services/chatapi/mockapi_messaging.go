@@ -134,7 +134,7 @@ func (api *MessagesAPIMixIn) initMockMessageForChat(chatName string) {
 	mockMessages := []ChatElement{}
 
 	for i := 0; i < 1000; i++ {
-
+		fmt.Printf("GEN MOCK MESSAGE: %v", i)
 		content := make(map[string]interface{})
 		content["chat-id"] = chatName
 		content["text"] = fmt.Sprintf("test-message-mock-%s-%d", chatName, i)
@@ -179,18 +179,57 @@ func (api *MessagesAPIMixIn) initMockMessageForChat(chatName string) {
 	api.chatMessages[chatName] = mockMessages
 }
 
-func (api *MessagesAPIMixIn) GetMessagesBeforeClock(chatID string, clock string, limit int) ([]ChatElement, error) {
+func (api *MessagesAPIMixIn) GetMessagesBefore(chatID string, clock string, limit int) ([]ChatElement, error) {
 	api.mu.RLock()
 	defer api.mu.RUnlock()
 	msgs, _ := api.chatMessages[chatID]
-	return msgs[:limit], nil
+	if clock == "" {
+		return msgs[:limit], nil
+	} else {
+		for idx, val := range msgs {
+			msg, ok := val.(*Message)
+			if !ok {
+				continue
+			}
+			if fmt.Sprintf("%v", msg.ClockValue) == clock {
+				return msgs[idx+1 : idx+1+limit], nil
+			}
+		}
+	}
+
+	return []ChatElement{}, nil
+
 }
 
 func (api *MessagesAPIMixIn) GetMessagesAfter(chatID string, clock string, limit int) ([]ChatElement, error) {
 	api.mu.RLock()
 	defer api.mu.RUnlock()
 	msgs, _ := api.chatMessages[chatID]
-	return msgs[:limit], nil
+	if clock == "" {
+		start := len(msgs) - 1 - limit
+		if start < 0 {
+			start = 0
+		}
+
+		return msgs[start-limit:], nil
+	}
+
+	for i := len(msgs) - 1; i >= 0; i-- {
+		msg, ok := msgs[i].(*Message)
+		if !ok {
+			continue
+		}
+		if fmt.Sprintf("%v", msg.ClockValue) == clock {
+			start := i - limit
+			if start < 0 {
+				start = 0
+			}
+
+			return msgs[start:i], nil
+		}
+	}
+
+	return []ChatElement{}, nil
 }
 func (api *MessagesAPIMixIn) GetMessagesBetween(chatID string, clock1, clock2 string) ([]ChatElement, error) {
 	api.mu.RLock()
@@ -232,7 +271,7 @@ func (api *MessagesAPIMixIn) insertNewMessages() {
 
 			api.mu.Lock()
 			api.chatMessages[chatName] =
-				append(api.chatMessages[chatName], msg)
+				append([]ChatElement{msg}, api.chatMessages[chatName]...)
 			api.mu.Unlock()
 
 			chatMessages, ok := createdMessages[chatName]
