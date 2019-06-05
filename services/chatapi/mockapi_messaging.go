@@ -118,6 +118,7 @@ func (api *MessagesAPIMixIn) initMockMessages() {
 	for i := 0; i < 10; i++ {
 		api.initMockMessageForChat(fmt.Sprintf("test%d", i))
 	}
+	api.initMockMessageForChat("status")
 
 	fmt.Println("chatapi -> mock messages created")
 }
@@ -128,7 +129,8 @@ func (api *MessagesAPIMixIn) initMockMessageForChat(chatName string) {
 	for i := 0; i < 1000; i++ {
 
 		content := make(map[string]interface{})
-		content["test"] = fmt.Sprintf("test-message-mock-%s-%d", chatName, i)
+		content["chat-id"] = chatName
+		content["text"] = fmt.Sprintf("test-message-mock-%s-%d", chatName, i)
 
 		msg := &Message{
 			ID:               fmt.Sprintf("message-id-%s-%d", chatName, i),
