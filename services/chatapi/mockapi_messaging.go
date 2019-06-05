@@ -107,6 +107,7 @@ type Gap struct {
 type Datemark struct {
 	Date  time.Time `json:"date"`
 	Value string    `json:"value"`
+	Type  string    `json:"type"`
 }
 
 type MessagesAPIMixIn struct {
@@ -157,6 +158,10 @@ func (api *MessagesAPIMixIn) initMockMessageForChat(chatName string) {
 		if i%10 == 0 {
 			// add a datemark
 			datemarkValue := fmt.Sprintf("fake-datemark-%d", i/10)
+			datemark := &Datemark{
+				Value: datemarkValue,
+				Type:  "datemark",
+			}
 			mockMessages = append(mockMessages, &Datemark{time.Now(), datemarkValue})
 		}
 
