@@ -156,7 +156,7 @@ func (api *MessagesAPIMixIn) initMockMessageForChat(chatName string) {
 			PayloadTimestamp: time.Now().UnixNano(),
 			WhisperTimestamp: time.Now().UnixNano(),
 			TimestampString:  "1 millenia ago",
-			ClockValue:       time.Now().UnixNano() + int64(i),
+			ClockValue:       time.Now().UnixNano() - int64(i*10000),
 		}
 
 		mockMessages = append(mockMessages, msg)
