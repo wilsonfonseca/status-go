@@ -11,7 +11,7 @@ require (
 	github.com/cespare/cp v1.1.1 // indirect
 	github.com/deckarep/golang-set v0.0.0-20180603214616-504e848d77ea // indirect
 	github.com/elastic/gosigar v0.10.3 // indirect
-	github.com/ethereum/go-ethereum v1.8.23
+	github.com/ethereum/go-ethereum v1.8.27
 	github.com/fjl/memsize v0.0.0-20180427083637-f6d5545993d6 // indirect
 	github.com/go-playground/locales v0.11.2 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
@@ -22,7 +22,7 @@ require (
 	github.com/influxdata/influxdb v1.7.6 // indirect
 	github.com/karalabe/hid v0.0.0-20170821103837-f00545f9f374 // indirect
 	github.com/lib/pq v1.0.0
-	github.com/libp2p/go-libp2p-crypto v0.1.0
+	github.com/libp2p/go-libp2p-core v0.0.3
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/mutecomm/go-sqlcipher v0.0.0-20170920224653-f799951b4ab2
@@ -41,7 +41,9 @@ require (
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.0
-	golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
+	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
+	golang.org/x/net v0.0.0-20190607181551-461777fb6f67 // indirect
+	golang.org/x/sys v0.0.0-20190609082536-301114b31cce // indirect
 	golang.org/x/text v0.3.2
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.9.3
@@ -51,4 +53,4 @@ require (
 	gopkg.in/urfave/cli.v1 v1.20.0 // indirect
 )
 
-replace github.com/ethereum/go-ethereum v1.8.23 => github.com/status-im/go-ethereum v1.8.23
+replace github.com/ethereum/go-ethereum v1.8.27 => github.com/status-im/go-ethereum v1.8.27-status.2
