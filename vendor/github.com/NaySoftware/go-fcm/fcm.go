@@ -180,8 +180,6 @@ func (this *FcmClient) sendOnce() (*FcmResponseStatus, error) {
 		return fcmRespStatus, err
 	}
 
-	fcmRespStatus.Err = string(body)
-
 	fcmRespStatus.StatusCode = response.StatusCode
 
 	fcmRespStatus.RetryAfter = response.Header.Get(retry_after_header)

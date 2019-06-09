@@ -10,27 +10,6 @@ RELEASE_TYPE := $(shell if [ $(PRE_RELEASE) = "0" ] ; then echo release; else ec
 help: ##@other Show this help
 	@perl -e '$(HELP_FUN)' $(MAKEFILE_LIST)
 
-ifndef GOPATH
-	$(error GOPATH not set. Please set GOPATH and make sure status-go is located at $$GOPATH/src/github.com/status-im/status-go. \
-	For more information about the GOPATH environment variable, see https://golang.org/doc/code.html#GOPATH)
-endif
-
-
-EXPECTED_PATH=$(shell go env GOPATH)/src/github.com/status-im/status-go
-ifneq ($(CURDIR),$(EXPECTED_PATH))
-define NOT_IN_GOPATH_ERROR
-
-Current dir is $(CURDIR), which seems to be different from your GOPATH.
-Please, build status-go from GOPATH for proper build.
-  GOPATH       = $(shell go env GOPATH)
-  Current dir  = $(CURDIR)
-  Expected dir = $(EXPECTED_PATH))
-See https://golang.org/doc/code.html#GOPATH for more info
-
-endef
-$(error $(NOT_IN_GOPATH_ERROR))
-endif
-
 CGO_CFLAGS = -I/$(JAVA_HOME)/include -I/$(JAVA_HOME)/include/darwin
 GOBIN = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))build/bin
 GIT_COMMIT = $(shell git rev-parse --short HEAD)
@@ -186,9 +165,9 @@ install-os-dependencies:
 
 setup-dev: setup-build mock-install install-os-dependencies gen-install ##@other Prepare project for development
 
-setup-build: dep-install lint-install release-install gomobile-install ##@other Prepare project for build
+setup-build: lint-install release-install gomobile-install ##@other Prepare project for build
 
-setup: setup-build setup-dev ##@other Prepare project for development and building
+setup: setup-build setup-dev tidy ##@other Prepare project for development and building
 
 generate: ##@other Regenerate assets and other auto-generated stuff
 	go generate ./static ./static/encryption_migrations ./static/mailserver_db_migrations
@@ -237,9 +216,13 @@ gen-install:
 	go get -u github.com/jteeuwen/go-bindata/go-bindata
 	go get -u github.com/golang/protobuf/protoc-gen-go
 
+modvendor-install:
+	# a tool to vendor non-go files
+	go get -u github.com/goware/modvendor
+
 mock-install: ##@other Install mocking tools
 	go get -u github.com/golang/mock/mockgen
-	dep ensure -update github.com/golang/mock
+	go get -u github.com/golang/mock
 
 mock: ##@other Regenerate mocks
 	mockgen -package=fcm          -destination=notifications/push/fcm/client_mock.go -source=notifications/push/fcm/client.go
@@ -293,9 +276,9 @@ lint:
 	@echo "lint"
 	@golangci-lint run ./...
 
-ci: lint dep-ensure canary-test test-unit test-e2e ##@tests Run all linters and tests at once
+ci: lint canary-test test-unit test-e2e ##@tests Run all linters and tests at once
 
-ci-race: lint dep-ensure canary-test test-unit test-e2e-race ##@tests Run all linters and tests at once + race
+ci-race: lint canary-test test-unit test-e2e-race ##@tests Run all linters and tests at once + race
 
 clean: ##@other Cleanup
 	rm -fr build/bin/*
@@ -303,11 +286,13 @@ clean: ##@other Cleanup
 deep-clean: clean
 	rm -Rdf .ethereumtest/StatusChain
 
-dep-ensure: ##@dependencies Ensure all dependencies are in place with dep
-	@dep ensure
+tidy:
+	go mod tidy
 
-dep-install: ##@dependencies Install vendoring tool
-	go get -u github.com/golang/dep/cmd/dep
+vendor:
+	go mod tidy
+	go mod vendor
+	modvendor -copy="**/*.c **/*.h" -v
 
 update-fleet-config: ##@other Update fleets configuration from fleets.status.im
 	./_assets/ci/update-fleet-config.sh
