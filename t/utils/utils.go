@@ -18,7 +18,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/status-im/status-go/logutils"
 	"github.com/status-im/status-go/params"
 	"github.com/status-im/status-go/static"
@@ -55,9 +54,6 @@ var (
 		params.StatusChainNetworkID: "StatusChain",
 		params.GoerliNetworkID:      "Goerli",
 	}
-
-	// All general log messages in this package should be routed through this logger.
-	logger = log.New("package", "status-go/t/utils")
 
 	syncTimeout = 50 * time.Minute
 )
