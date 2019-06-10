@@ -170,7 +170,7 @@ setup-build: lint-install release-install gomobile-install ##@other Prepare proj
 setup: setup-build setup-dev tidy ##@other Prepare project for development and building
 
 generate: ##@other Regenerate assets and other auto-generated stuff
-	go generate ./static ./static/encryption_migrations ./static/mailserver_db_migrations
+	go generate ./static ./static/encryption_migrations ./static/mailserver_db_migrations ./t
 	$(shell cd ./services/shhext/chat && exec protoc --go_out=. ./*.proto)
 
 prepare-release: clean-release
@@ -212,9 +212,8 @@ release-install:
 	go get -u github.com/c4milo/github-release
 
 gen-install:
-	go get -u github.com/jteeuwen/go-bindata
-	go get -u github.com/jteeuwen/go-bindata/go-bindata
-	go get -u github.com/golang/protobuf/protoc-gen-go
+	go get -u github.com/kevinburke/go-bindata/go-bindata@v3.13.0
+	go get -u github.com/golang/protobuf/protoc-gen-go@v1.3.1
 
 modvendor-install:
 	# a tool to vendor non-go files
