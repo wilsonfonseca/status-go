@@ -25,6 +25,7 @@ pipeline {
     BUILD_PLATFORM = 'linux'
     STATUS_PATH    = 'src/github.com/status-im/status-go'
     CI_DIR         = "${env.STATUS_PATH}/_assets/ci"
+    PATH           = "${env.PATH}:${env.GOPATH}/bin"
   }
 
   stages {
@@ -36,24 +37,24 @@ pipeline {
       println("Git Commit: ${lib.gitCommit()}")
     } } }
 
-    stage('Setup') { steps {
+    stage('Setup') { steps { dir(env.STATUS_PATH) {
       sh 'make setup-build'
-    } }
+    } } }
 
-    stage('Lint') { steps {
+    stage('Lint') { steps { dir(env.STATUS_PATH) {
       sh 'make lint'
-    } }
+    } } }
 
-    stage('Canary') { steps {
+    stage('Canary') { steps { dir(env.STATUS_PATH) {
       sh 'make canary-test'
-    } }
+    } } }
 
-    stage('Unit Tests') { steps {
+    stage('Unit Tests') { steps { dir(env.STATUS_PATH) {
       sh 'make test-unit'
-    } }
+    } } }
 
-    stage('Race E2E Tests') { steps {
+    stage('Race E2E Tests') { steps { dir(env.STATUS_PATH) {
       sh 'make test-e2e-race'
-    } }
+    } } }
   } // stages
 } // pipeline
