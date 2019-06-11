@@ -25,7 +25,7 @@ pipeline {
     BUILD_PLATFORM = 'linux'
     STATUS_PATH    = 'src/github.com/status-im/status-go'
     CI_DIR         = "${env.STATUS_PATH}/_assets/ci"
-    PATH           = "${env.PATH}:${env.GOPATH}/bin"
+    PATH           = "/usr/local/go/bin:${env.PATH}:${env.GOPATH}/bin"
   }
 
   stages {
