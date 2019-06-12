@@ -1,6 +1,8 @@
 .PHONY: statusgo statusd-prune all test clean help
 .PHONY: statusgo-android statusgo-ios
 
+GO111MODULE = on
+
 RELEASE_TAG := $(shell cat VERSION)
 RELEASE_BRANCH := develop
 RELEASE_DIR := /tmp/release-$(RELEASE_TAG)
