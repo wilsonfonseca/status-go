@@ -34,3 +34,7 @@ type CursorQuery struct {
 	limit  uint32
 	bloom  []byte
 }
+
+func NewSimpleCursorQuery(start, end []byte) CursorQuery {
+	return CursorQuery{start: start, end: end}
+}
