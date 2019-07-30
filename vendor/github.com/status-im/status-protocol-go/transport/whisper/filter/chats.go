@@ -91,6 +91,11 @@ func New(db *sql.DB, w *whisper.Whisper, privateKey *ecdsa.PrivateKey, logger *z
 		return nil, err
 	}
 
+	logger.Info("LOADING KEYS")
+	for k, _ := range keys {
+		logger.Info("Loading  key for chatID", zap.String("chatID", k))
+	}
+
 	return &ChatsManager{
 		privateKey:  privateKey,
 		whisper:     w,
@@ -466,11 +471,13 @@ func (s *ChatsManager) addSymmetric(chatID string) (*Filter, error) {
 
 	symKey, ok := s.keys[chatID]
 	if ok {
+		s.logger.Info("Keys cached for chatID", zap.String("chatID", chatID))
 		symKeyID, err = s.whisper.AddSymKeyDirect(symKey)
 		if err != nil {
 			return nil, err
 		}
 	} else {
+		s.logger.Info("Keys not cached for chatID", zap.String("chatID", chatID))
 		symKeyID, err = s.whisper.AddSymKeyFromPassword(chatID)
 		if err != nil {
 			return nil, err
