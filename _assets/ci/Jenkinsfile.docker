@@ -44,7 +44,7 @@ pipeline {
       println("Git Branch: ${lib.gitBranch()}")
       println("Git Commit: ${lib.gitCommit()}")
       /* save and create a dir for artifacts */
-      dest = "${env.WORKSPACE}/pkg"
+      dest = "${env.WORKSPACE}/out"
       sh "mkdir -p ${dest}"
     } } }
 
