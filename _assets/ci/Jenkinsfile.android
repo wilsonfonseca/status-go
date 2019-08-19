@@ -27,6 +27,7 @@ pipeline {
   }
 
   environment {
+    GO111MODULE      = 'on'
     BUILD_PLATFORM   = 'android'
     STATUS_PATH      = "${env.WORKSPACE}/src/github.com/status-im/status-go"
     CI_DIR           = "${env.STATUS_PATH}/_assets/ci"
