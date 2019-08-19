@@ -215,7 +215,7 @@ xgo-install:
 	go get -u github.com/karalabe/xgo
 
 gomobile-install:
-	go get -u golang.org/x/mobile/cmd/gomobile
+	go get golang.org/x/mobile/cmd/gomobile
 
 release-install:
 	go get -u github.com/c4milo/github-release
