@@ -166,7 +166,7 @@ install-os-dependencies:
 
 setup-dev: setup-build mock-install install-os-dependencies gen-install ##@other Prepare project for development
 
-setup-build: lint-install release-install gomobile-install ##@other Prepare project for build
+setup-build: lint-install release-install pkgs-install gomobile-install ##@other Prepare project for build
 
 setup: setup-build setup-dev tidy ##@other Prepare project for development and building
 
@@ -207,6 +207,9 @@ release: check-existing-release
 	else \
 	    echo "Aborting." && exit 1; \
 	fi
+
+pkgs-install:
+	go get
 
 xgo-install:
 	go get -u github.com/karalabe/xgo
