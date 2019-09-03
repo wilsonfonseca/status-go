@@ -75,3 +75,12 @@ sync INT,
 FOREIGN KEY(network_id,blk_number) REFERENCES blocks(network_id,number) ON DELETE CASCADE,
 CONSTRAINT unique_mapping_for_account_to_block_per_network UNIQUE (address,blk_number,network_id)
 );
+
+CREATE TABLE IF NOT EXISTS mailserver_request_gaps (
+  gap_from UNSIGNED INTEGER NOT NULL,
+  gap_to UNSIGNED INTEGER NOT NULL,
+  id TEXT PRIMARY KEY,
+  chat_id TEXT NOT NULL
+  ) WITHOUT ROWID;
+
+CREATE INDEX mailserver_request_gaps_chat_id_idx ON mailserver_request_gaps (chat_id);

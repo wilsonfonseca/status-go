@@ -7,3 +7,6 @@ DROP TABLE permissions;
 DROP TABLE transfers;
 DROP TABLE blocks;
 DROP TABLE accounts_to_blocks;
+DROP INDEX mailserver_request_gaps_chat_id_idx;
+DROP TABLE mailserver_request_gaps;
+

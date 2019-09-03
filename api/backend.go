@@ -32,6 +32,7 @@ import (
 	"github.com/status-im/status-go/rpc"
 	accountssvc "github.com/status-im/status-go/services/accounts"
 	"github.com/status-im/status-go/services/browsers"
+	"github.com/status-im/status-go/services/mailserverrequestgaps"
 	"github.com/status-im/status-go/services/permissions"
 	"github.com/status-im/status-go/services/personal"
 	"github.com/status-im/status-go/services/rpcfilters"
@@ -360,6 +361,12 @@ func (b *StatusBackend) walletService(network uint64, accountsFeed *event.Feed) 
 	}
 }
 
+func (b *StatusBackend) mailserverRequestGapsService() gethnode.ServiceConstructor {
+	return func(*gethnode.ServiceContext) (gethnode.Service, error) {
+		return mailserverrequestgaps.NewService(mailserverrequestgaps.NewDB(b.appDB)), nil
+	}
+}
+
 func (b *StatusBackend) startNode(config *params.NodeConfig) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -379,6 +386,7 @@ func (b *StatusBackend) startNode(config *params.NodeConfig) (err error) {
 	services = appendIf(config.BrowsersConfig.Enabled, services, b.browsersService())
 	services = appendIf(config.PermissionsConfig.Enabled, services, b.permissionsService())
 	services = appendIf(config.WalletConfig.Enabled, services, b.walletService(config.NetworkID, accountsFeed))
+	services = append(services, b.mailserverRequestGapsService())
 
 	manager := b.accountManager.GetManager()
 	if manager == nil {
